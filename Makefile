@@ -145,9 +145,27 @@ ifeq "$(GE_49)" "1"
 EXTRA_CFLAGS       += -Wno-date-time
 endif
 
-EXTRA_LDFLAGS      := $(src)/lib/wlc_hybrid.o_shipped
+# Look for kernel architecture.
+# Check for a config symbol that should always be defined, so we don't
+# fail on 'make clean' which doesn't include .config
+ifeq ($(CONFIG_NET),y)
+    ifeq ($(CONFIG_X86_32),y)
+        SHIPPED=wlc_hybrid.o_i386
+        $(info Kernel architecture is X86_32)
+    else
+        ifeq ($(CONFIG_X86_64),y)
+            SHIPPED=wlc_hybrid.o_amd64
+            $(info Kernel architecture is X86_64)
+        else # Error!
+            $(error Unsupported kernel architecture)
+        endif
+    endif
+endif
 
-KBASE              ?= /lib/modules/`uname -r`
+EXTRA_LDFLAGS      := $(src)/lib/$(SHIPPED)
+
+KVER               ?= $(shell uname -r)
+KBASE              ?= /lib/modules/$(KVER)
 KBUILD_DIR         ?= $(KBASE)/build
 MDEST_DIR          ?= $(KBASE)/kernel/drivers/net/wireless
 
