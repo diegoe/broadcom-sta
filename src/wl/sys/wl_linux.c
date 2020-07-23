@@ -788,16 +788,18 @@ wl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	pci_read_config_dword(pdev, 0x40, &val);
 	if ((val & 0x0000ff00) != 0)
 		pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
-		bar1_size = pci_resource_len(pdev, 2);
-		#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-		bar1_addr = (uchar *)ioremap(pci_resource_start(pdev, 2),
-			bar1_size);
-		#else
-		bar1_addr = (uchar *)ioremap_nocache(pci_resource_start(pdev, 2),
-			bar1_size);
-		#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
+
+	bar1_size = pci_resource_len(pdev, 2);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	bar1_addr = (uchar *)ioremap(pci_resource_start(pdev, 2),
+				     bar1_size);
+#else
+	bar1_addr = (uchar *)ioremap_nocache(pci_resource_start(pdev, 2),
+					     bar1_size);
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
+
 	wl = wl_attach(pdev->vendor, pdev->device, pci_resource_start(pdev, 0), PCI_BUS, pdev,
-		pdev->irq, bar1_addr, bar1_size);
+		       pdev->irq, bar1_addr, bar1_size);
 
 	if (!wl)
 		return -ENODEV;
