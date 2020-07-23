@@ -628,6 +628,10 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 
 	wlc_iovar_setint(wl->wlc, "scan_passive_time", 170);
 
+	/* NOTICE: The driver's `qtxpower` option takes values from 0 to
+	 * 127, which correspond to (dBm * 4). This seems to be a half-done
+	 * implementation of their own API. The brcmfmac kernel driver
+	 * confirms this. */
 	wlc_iovar_setint(wl->wlc, "qtxpower", 23 * 4);
 
 #ifdef BCMDBG

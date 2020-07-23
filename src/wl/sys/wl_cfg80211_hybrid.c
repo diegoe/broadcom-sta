@@ -89,13 +89,13 @@ static s32 wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev, u
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
 static s32
 wl_cfg80211_set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
-                         enum nl80211_tx_power_setting type, s32 dbm);
+                         enum nl80211_tx_power_setting type, s32 mbm);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
 static s32 wl_cfg80211_set_tx_power(struct wiphy *wiphy,
-           enum nl80211_tx_power_setting type, s32 dbm);
+           enum nl80211_tx_power_setting type, s32 mbm);
 #else
 static s32 wl_cfg80211_set_tx_power(struct wiphy *wiphy,
-           enum tx_power_setting type, s32 dbm);
+           enum tx_power_setting type, s32 mbm);
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
@@ -1085,24 +1085,25 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_c
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
 static s32
 wl_cfg80211_set_tx_power(struct wiphy *wiphy, struct wireless_dev *wdev,
-                         enum nl80211_tx_power_setting type, s32 dbm)
+                         enum nl80211_tx_power_setting type, s32 mbm)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
 static s32
-wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum nl80211_tx_power_setting type, s32 dbm)
+wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum nl80211_tx_power_setting type, s32 mbm)
 #else
 #define NL80211_TX_POWER_AUTOMATIC TX_POWER_AUTOMATIC
 #define NL80211_TX_POWER_LIMITED TX_POWER_LIMITED
 #define NL80211_TX_POWER_FIXED TX_POWER_FIXED
 static s32
-wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum tx_power_setting type, s32 dbm)
+wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum tx_power_setting type, s32 mbm)
 #endif
 {
 
 	struct wl_cfg80211_priv *wl = wiphy_to_wl(wiphy);
 	struct net_device *ndev = wl_to_ndev(wl);
-	u16 txpwrmw;
 	s32 err = 0;
 	s32 disable = 0;
+	s32 dbm = MBM_TO_DBM(mbm);
+	s32 qdbm = dbm * 4;
 
 	switch (type) {
 	case NL80211_TX_POWER_AUTOMATIC:
@@ -1121,6 +1122,9 @@ wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum tx_power_setting type, s32 db
 		break;
 	}
 
+	qdbm = (qdbm > 127) ? 127 : qdbm;
+	qdbm |= WL_TXPWR_OVERRIDE;
+
 	disable = WL_RADIO_SW_DISABLE << 16;
 	disable = htod32(disable);
 	err = wl_dev_ioctl(ndev, WLC_SET_RADIO, &disable, sizeof(disable));
@@ -1129,11 +1133,7 @@ wl_cfg80211_set_tx_power(struct wiphy *wiphy, enum tx_power_setting type, s32 db
 		return err;
 	}
 
-	if (dbm > 0xffff)
-		txpwrmw = 0xffff;
-	else
-		txpwrmw = (u16) dbm;
-	err = wl_dev_intvar_set(ndev, "qtxpower", (s32) (bcm_mw_to_qdbm(txpwrmw)));
+	err = wl_dev_intvar_set(ndev, "qtxpower", qdbm);
 	if (err) {
 		WL_ERR(("qtxpower error (%d)\n", err));
 		return err;
@@ -1161,7 +1161,7 @@ static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, s32 *dbm)
 		return err;
 	}
 	result = (u8) (txpwrdbm & ~WL_TXPWR_OVERRIDE);
-	*dbm = (s32) bcm_qdbm_to_mw(result);
+	*dbm = (s32) result / 4;
 
 	return err;
 }
