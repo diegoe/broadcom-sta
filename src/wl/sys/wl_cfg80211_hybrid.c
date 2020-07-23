@@ -1484,7 +1484,9 @@ wl_cfg80211_set_power_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	s32 pm;
 	s32 err = 0;
 
-	pm = enabled ? PM_FAST : PM_OFF;
+	/* NOTICE: Use PM_FORCE_OFF, otherwise powersaving will turn itself
+	 * ON again (PM_FAST) when on battery power. */
+	pm = enabled ? PM_FAST : PM_FORCE_OFF;
 	pm = htod32(pm);
 	WL_DBG(("power save %s\n", (pm ? "enabled" : "disabled")));
 	err = wl_dev_ioctl(dev, WLC_SET_PM, &pm, sizeof(pm));
