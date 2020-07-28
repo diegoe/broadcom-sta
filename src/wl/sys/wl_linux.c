@@ -1848,15 +1848,17 @@ wl_set_mac_address(struct net_device *dev, void *addr)
 	WL_TRACE(("wl%d: wl_set_mac_address\n", wl->pub->unit));
 
 	WL_LOCK(wl);
-
-	bcopy(sa->sa_data, dev->dev_addr, ETHER_ADDR_LEN);
 	err = wlc_iovar_op(wl->wlc, "cur_etheraddr", NULL, 0, sa->sa_data, ETHER_ADDR_LEN,
 		IOV_SET, (WL_DEV_IF(dev))->wlcif);
 	WL_UNLOCK(wl);
-	if (err)
+	if (err) {
 		WL_ERROR(("wl%d: wl_set_mac_address: error setting MAC addr override\n",
 			wl->pub->unit));
-	return err;
+		return OSL_ERROR(err);
+	} else {
+		bcopy(sa->sa_data, dev->dev_addr, ETHER_ADDR_LEN);
+		return 0;
+	}
 }
 
 static void
