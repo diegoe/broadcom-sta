@@ -1070,14 +1070,15 @@ wl_cfg80211_disconnect(struct wiphy *wiphy, struct net_device *dev, u16 reason_c
 	WL_DBG(("Reason %d\n", reason_code));
 
 	if (wl->profile->active) {
-		scbval.val = reason_code;
 		memcpy(&scbval.ea, &wl->bssid, ETHER_ADDR_LEN);
-		scbval.val = htod32(scbval.val);
-		err = wl_dev_ioctl(dev, WLC_DISASSOC, &scbval, sizeof(scb_val_t));
+		scbval.val = htod32(reason_code);
+		err = wl_dev_ioctl(dev, WLC_DISASSOC, &scbval, sizeof(scbval));
 		if (err) {
 			WL_ERR(("error (%d)\n", err));
 			return err;
 		}
+	} else {
+	    return -EIO;
 	}
 
 	return err;
