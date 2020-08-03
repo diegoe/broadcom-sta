@@ -2309,7 +2309,13 @@ static s32 wl_update_bss_info(struct wl_cfg80211_priv *wl)
 
 	ssid = &wl->profile->ssid;
 	bss = cfg80211_get_bss(wl_to_wiphy(wl), NULL, (s8 *)&wl->bssid,
-	      ssid->SSID, ssid->SSID_len, WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS);
+			       ssid->SSID, ssid->SSID_len,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
+			       WLAN_CAPABILITY_ESS, WLAN_CAPABILITY_ESS
+#else
+			       IEEE80211_BSS_TYPE_ESS, IEEE80211_PRIVACY_ANY
+#endif
+			       );
 
 	rtnl_lock();
 	if (!bss) {
