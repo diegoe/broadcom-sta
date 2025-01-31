@@ -20,20 +20,22 @@
 
 ifneq ($(KERNELRELEASE),)
 
-  VERSION := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\(.*\)/\1/')
-  PATCHLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\(.*\)/\2/')
-  SUBLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\(.*\)/\3/')
+  VERSION := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)\(.*\)/\1/')
+  PATCHLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)\(.*\)/\2/')
+  SUBLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\(.*\)/\3/; s/\([0-9]*\)[.]\([0-9]*\)\(.*\)/0/')
 
+  # >= 2.6.32
   LINUXVER_GOODFOR_CFG80211:=$(strip $(shell \
-    if [ "$(VERSION)" -ge "2" -a "$(PATCHLEVEL)" -ge "6" -a "$(SUBLEVEL)" -ge "32" -o "$(VERSION)" -ge "3" ]; then \
+    if [ "$(VERSION).$(PATCHLEVEL)" = "2.6" -a "$(SUBLEVEL)" -ge "32" ] || [ "$(VERSION)" -eq "2" -a "$(PATCHLEVEL)" -ge "7" ] || [ "$(VERSION)" -ge "3" ]; then \
       echo TRUE; \
     else \
       echo FALSE; \
     fi \
   ))
 
+  # < 2.6.17
     LINUXVER_WEXT_ONLY:=$(strip $(shell \
-    if [ "$(VERSION)" -ge "2" -a "$(PATCHLEVEL)" -ge "6" -a "$(SUBLEVEL)" -ge "17" ]; then \
+    if [ "$(VERSION).$(PATCHLEVEL)" = "2.6" -a "$(SUBLEVEL)" -ge "17" ] || [ "$(VERSION)" -eq "2" -a "$(PATCHLEVEL)" -ge "7" ] || [ "$(VERSION)" -ge "3" ]; then \
       echo FALSE; \
     else \
       echo TRUE; \
