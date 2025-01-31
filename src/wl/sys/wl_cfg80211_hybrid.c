@@ -104,14 +104,28 @@ static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, struct wireless_dev *wd
 static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, s32 *dbm);
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 38)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32 wl_cfg80211_config_default_key(struct wiphy *wiphy,
+           struct net_device *dev, int link_id, u8 key_idx, bool unicast,
+           bool multicast);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 38)
 static s32 wl_cfg80211_config_default_key(struct wiphy *wiphy,
            struct net_device *dev, u8 key_idx, bool unicast, bool multicast);
 #else
 static s32 wl_cfg80211_config_default_key(struct wiphy *wiphy,
            struct net_device *dev, u8 key_idx);
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32 wl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *dev,
+           int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr,
+           struct key_params *params);
+static s32 wl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
+           int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr);
+static s32 wl_cfg80211_get_key(struct wiphy *wiphy, struct net_device *dev,
+           int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr,
+           void *cookie,
+           void (*callback) (void *cookie, struct key_params *params));
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 static s32 wl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *dev,
            u8 key_idx, bool pairwise, const u8 *mac_addr, struct key_params *params);
 static s32 wl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
@@ -1168,7 +1182,12 @@ static s32 wl_cfg80211_get_tx_power(struct wiphy *wiphy, s32 *dbm)
 	return err;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 38)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32
+wl_cfg80211_config_default_key(struct wiphy *wiphy,
+	struct net_device *dev, int link_id, u8 key_idx, bool unicast,
+	bool multicast)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 38)
 static s32
 wl_cfg80211_config_default_key(struct wiphy *wiphy,
 	struct net_device *dev, u8 key_idx, bool unicast, bool multicast)
@@ -1193,7 +1212,12 @@ wl_cfg80211_config_default_key(struct wiphy *wiphy,
 	return 0;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32
+wl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *dev,
+                    int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr,
+                    struct key_params *params)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 static s32
 wl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *dev,
                     u8 key_idx, bool pairwise, const u8 *mac_addr, struct key_params *params)
@@ -1314,7 +1338,11 @@ wl_cfg80211_add_key(struct wiphy *wiphy, struct net_device *dev,
 	return err;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32
+wl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
+                    int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr)
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 static s32
 wl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
                     u8 key_idx, bool pairwise, const u8 *mac_addr)
@@ -1357,7 +1385,13 @@ wl_cfg80211_del_key(struct wiphy *wiphy, struct net_device *dev,
 	return err;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+static s32
+wl_cfg80211_get_key(struct wiphy *wiphy, struct net_device *dev,
+                    int link_id, u8 key_idx, bool pairwise, const u8 *mac_addr,
+                    void *cookie,
+                    void (*callback) (void *cookie, struct key_params * params))
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
 static s32
 wl_cfg80211_get_key(struct wiphy *wiphy, struct net_device *dev,
                     u8 key_idx, bool pairwise, const u8 *mac_addr, void *cookie,
