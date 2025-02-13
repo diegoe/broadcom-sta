@@ -1116,8 +1116,9 @@ wl_open(struct net_device *dev)
 	}
 	WL_UNLOCK(wl);
 
-	if (!error)
+	if (!error) {
 		OLD_MOD_INC_USE_COUNT;
+	}
 
 #if defined(USE_CFG80211)
 	if (wl_cfg80211_up(dev)) {
@@ -2226,8 +2227,9 @@ wl_start(struct sk_buff *skb, struct net_device *dev)
 	wl_if_t *wlif;
 	wl_info_t *wl;
 
-	if (!dev)
+	if (!dev) {
 		return -ENETDOWN;
+	}
 
 	wlif = WL_DEV_IF(dev);
 	wl = WL_INFO(dev);
@@ -2262,9 +2264,10 @@ wl_start(struct sk_buff *skb, struct net_device *dev)
 			if (!err) {
 				atomic_inc(&wl->callbacks);
 				wl->txq_dispatched = TRUE;
-			} else
+			} else {
 				WL_ERROR(("wl%d: wl_start/schedule_work failed\n",
 				          wl->pub->unit));
+			}
 		}
 
 		TXQ_UNLOCK(wl);
