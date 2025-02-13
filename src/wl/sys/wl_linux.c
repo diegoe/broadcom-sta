@@ -930,6 +930,10 @@ wl_module_init(void)
 {
 	int error = -ENODEV;
 
+#ifdef CONFIG_X86_KERNEL_IBT
+	printk(KERN_WARNING "wl: This driver includes a binary blob incompatible with IBT protection, available since Intel Core Tiger Lake (11th gen, 2020). If your CPU is older you can ignore the 'Unpatched return thunk in use' warnings caused by this driver. You can disable IBT by adding `ibt=off` to your kernel boot options.");
+#endif
+
 #ifdef BCMDBG
 	if (msglevel != 0xdeadbeef)
 		wl_msg_level = msglevel;
