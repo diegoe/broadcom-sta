@@ -2377,7 +2377,9 @@ wl_timer(
 #endif
 ) {
 	wl_timer_t *t =
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
+		timer_container_of(t, tl, timer);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 		from_timer(t, tl, timer);
 #else
 		(wl_timer_t *)data;
