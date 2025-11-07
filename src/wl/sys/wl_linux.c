@@ -1509,7 +1509,9 @@ wl_down(wl_info_t *wl)
 		int i = 0;
 		for (i = 0; (atomic_read(&wl->callbacks) > callbacks) && i < 10000; i++) {
 			schedule();
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
 			flush_scheduled_work();
+#endif
 		}
 	}
 	else
