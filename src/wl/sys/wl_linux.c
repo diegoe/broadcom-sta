@@ -71,10 +71,7 @@
 #include <wl_export.h>
 
 #include <wl_linux.h>
-
-#if defined(USE_CFG80211)
 #include <wl_cfg80211_hybrid.h>
-#endif 
 
 #include <wlc_wowl.h>
 
@@ -464,9 +461,7 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	wl_info_t *wl;
 	osl_t *osh;
 	int unit, err;
-#if defined(USE_CFG80211)
 	struct device *parentdev;
-#endif
 
 	unit = wl_found + instance_base;
 	err = 0;
@@ -621,7 +616,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		dev->irq = irq;
 	}
 
-#if defined(USE_CFG80211)
 	parentdev = NULL;
 	if (wl->bcm_bustype == PCI_BUS) {
 		parentdev = &((struct pci_dev *)btparam)->dev;
@@ -635,14 +629,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		WL_ERROR(("unsupported bus type\n"));
 		goto fail;
 	}
-#else
-
-	if (wl->bcm_bustype == PCI_BUS) {
-		struct pci_dev *pci_dev = (struct pci_dev *)btparam;
-		if (pci_dev != NULL)
-			SET_NETDEV_DEV(dev, &pci_dev->dev);
-	}
-#endif 
 
 	if (register_netdev(dev)) {
 		WL_ERROR(("wl%d: register_netdev() failed\n", unit));
@@ -1050,12 +1036,10 @@ wl_open(struct net_device *dev)
 		OLD_MOD_INC_USE_COUNT;
 	}
 
-#if defined(USE_CFG80211)
 	if (wl_cfg80211_up(dev)) {
 		WL_ERROR(("%s: failed to bring up cfg80211\n", __func__));
 		return -1;
 	}
-#endif
 	return (error? -ENODEV : 0);
 }
 
@@ -1067,9 +1051,7 @@ wl_close(struct net_device *dev)
 	if (!dev)
 		return -ENETDOWN;
 
-#if defined(USE_CFG80211)
 	wl_cfg80211_down(dev);
-#endif
 	wl = WL_INFO(dev);
 
 	WL_TRACE(("wl%d: wl_close\n", wl->pub->unit));
@@ -1218,10 +1200,7 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 		unregister_netdev(wlif->dev);
 		wlif->dev_registed = FALSE;
 	}
-
-#if defined(USE_CFG80211)
 	wl_cfg80211_detach(wlif->dev);
-#endif
 
 	p = wl->if_list;
 	if (p == wlif)
@@ -1957,9 +1936,7 @@ wl_link_down(wl_info_t *wl, char *ifname)
 void
 wl_event(wl_info_t *wl, char *ifname, wlc_event_t *e)
 {
-#if defined(USE_CFG80211)
 	wl_cfg80211_event(wl->dev, &(e->event), e->data);
-#endif
 	switch (e->event.event_type) {
 	case WLC_E_LINK:
 	case WLC_E_NDIS_LINK:

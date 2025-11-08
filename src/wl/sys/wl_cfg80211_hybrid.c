@@ -19,8 +19,6 @@
  * $Id: wl_cfg80211.c,v 1.1.6.4 2011-02-11 00:22:09 $
  */
 
-#if defined(USE_CFG80211)
-
 #define LINUX_PORT
 #include <typedefs.h>
 #include <linuxver.h>
@@ -2867,5 +2865,3 @@ static void wl_init_eq_lock(struct wl_cfg80211_priv *wl)
 {
 	spin_lock_init(&wl->eq_lock);
 }
-
-#endif 

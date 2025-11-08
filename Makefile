@@ -44,9 +44,6 @@ GE_49 := $(shell expr `echo $(GCCVERSION)` \>= 490)
 
 ccflags-y :=
 
-ccflags-y += -DUSE_CFG80211
-$(info Using CFG80211 API)
-
 obj-m              += wl.o
 
 wl-objs            :=
