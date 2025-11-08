@@ -633,8 +633,9 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	wlif->dev_registed = TRUE;
 
 #if defined(WL_CONFIG_RFKILL)
-	if (wl_init_rfkill(wl) < 0)
+	if (wl_init_rfkill(wl) < 0) {
 		WL_ERROR(("%s: init_rfkill_failure\n", __FUNCTION__));
+	}
 #endif
 
 	if (wlc_iovar_setint(wl->wlc, "leddc", 0xa0000)) {
@@ -1942,10 +1943,12 @@ wl_event(wl_info_t *wl, char *ifname, wlc_event_t *e)
 #if defined(WL_CONFIG_RFKILL)
 	case WLC_E_RADIO: {
 		mbool i;
-		if (wlc_get(wl->wlc, WLC_GET_RADIO, &i) < 0)
+		if (wlc_get(wl->wlc, WLC_GET_RADIO, &i) < 0) {
 			WL_ERROR(("%s: WLC_GET_RADIO failed\n", __FUNCTION__));
-		if (wl->last_phyind == (mbool)(i & WL_RADIO_HW_DISABLE))
+		}
+		if (wl->last_phyind == (mbool)(i & WL_RADIO_HW_DISABLE)) {
 			break;
+		}
 
 		wl->last_phyind = (mbool)(i & WL_RADIO_HW_DISABLE);
 
