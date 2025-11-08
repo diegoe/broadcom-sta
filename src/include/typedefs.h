@@ -33,13 +33,8 @@ typedef unsigned long long int uintptr;
 #define TYPEDEF_ULONG
 #ifdef __KERNEL__
 #include <linux/version.h>
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19))
 #define TYPEDEF_BOOL
-#endif	
 
-#if (LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 18))
-#include <linux/compiler.h>
-#endif	
 #endif	
 #endif  
 
