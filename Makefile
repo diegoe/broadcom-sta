@@ -52,7 +52,6 @@ obj-m              += wl.o
 wl-objs            :=
 wl-objs            += src/shared/linux_osl.o
 wl-objs            += src/wl/sys/wl_linux.o
-wl-objs            += src/wl/sys/wl_iw.o
 wl-objs            += src/wl/sys/wl_cfg80211_hybrid.o
 
 ccflags-y          += -I$(src)/src/include -I$(src)/src/common/include

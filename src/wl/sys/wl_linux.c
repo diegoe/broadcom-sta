@@ -82,11 +82,6 @@
 #include <wlc_ethereal.h>
 #include <proto/ieee80211_radiotap.h>
 
-#include <wl_iw.h>
-#ifdef USE_IW
-struct iw_statistics *wl_get_wireless_stats(struct net_device *dev);
-#endif
-
 #include <wl_export.h>
 
 #include <wl_linux.h>
@@ -483,15 +478,6 @@ wl_if_setup(struct net_device *dev)
 	dev->do_ioctl = wl_ioctl;
 #endif 
 
-#ifdef USE_IW
-#if WIRELESS_EXT < 19
-	dev->get_wireless_stats = wl_get_wireless_stats;
-#endif
-#if WIRELESS_EXT > 12
-	dev->wireless_handlers = (struct iw_handler_def *) &wl_iw_handler_def;
-#endif
-#endif 
-
 #if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
 	dev->ethtool_ops = &wl_ethtool_ops;
 #endif
@@ -674,10 +660,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		dev->irq = irq;
 	}
 
-#if defined(USE_IW)
-	WL_ERROR(("Using Wireless Extension\n"));
-#endif
-
 #if defined(USE_CFG80211)
 	parentdev = NULL;
 	if (wl->bcm_bustype == PCI_BUS) {
@@ -706,12 +688,6 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 		goto fail;
 	}
 	wlif->dev_registed = TRUE;
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
-#endif 
-#ifdef USE_IW
-	wlif->iw.wlinfo = (void *)wl;
-#endif
 
 #if defined(WL_CONFIG_RFKILL)
 	if (wl_init_rfkill(wl) < 0)
@@ -1659,14 +1635,6 @@ wl_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
 	WL_TRACE(("wl%d: wl_ioctl: cmd 0x%x\n", wl->pub->unit, cmd));
 
-#ifdef USE_IW
-
-	if ((cmd >= SIOCIWFIRST) && (cmd <= SIOCIWLAST)) {
-
-		return wl_iw_ioctl(dev, ifr, cmd);
-	}
-#endif 
-
 	if (cmd == SIOCETHTOOL)
 		return (wl_ethtool(wl, (void*)ifr->ifr_data, wlif));
 
@@ -1773,83 +1741,6 @@ wl_get_stats(struct net_device *dev)
 	memcpy(stats, stats_watchdog, sizeof(struct net_device_stats));
 	return (stats);
 }
-
-#ifdef USE_IW
-struct iw_statistics *
-wl_get_wireless_stats(struct net_device *dev)
-{
-	int res = 0;
-	wl_info_t *wl;
-	wl_if_t *wlif;
-	struct iw_statistics *wstats = NULL;
-	struct iw_statistics *wstats_watchdog = NULL;
-	int phy_noise, rssi;
-
-	if (!dev)
-		return NULL;
-
-	if ((wl = WL_INFO(dev)) == NULL)
-		return NULL;
-
-	if ((wlif = WL_DEV_IF(dev)) == NULL)
-		return NULL;
-
-	if ((wstats = &wlif->wstats) == NULL)
-		return NULL;
-
-	WL_TRACE(("wl%d: wl_get_wireless_stats\n", wl->pub->unit));
-
-	ASSERT(wlif->stats_id < 2);
-	wstats_watchdog = &wlif->wstats_watchdog[wlif->stats_id];
-
-	phy_noise = wlif->phy_noise;
-#if WIRELESS_EXT > 11
-	wstats->discard.nwid = 0;
-	wstats->discard.code = wstats_watchdog->discard.code;
-	wstats->discard.fragment = wstats_watchdog->discard.fragment;
-	wstats->discard.retries = wstats_watchdog->discard.retries;
-	wstats->discard.misc = wstats_watchdog->discard.misc;
-
-	wstats->miss.beacon = 0;
-#endif 
-
-	if (AP_ENAB(wl->pub))
-		rssi = 0;
-	else {
-		scb_val_t scb;
-		res = wlc_ioctl(wl->wlc, WLC_GET_RSSI, &scb, sizeof(int), wlif->wlcif);
-		if (res) {
-			WL_ERROR(("wl%d: %s: WLC_GET_RSSI failed (%d)\n",
-				wl->pub->unit, __FUNCTION__, res));
-			return NULL;
-		}
-		rssi = scb.val;
-	}
-
-	if (rssi <= WLC_RSSI_NO_SIGNAL)
-		wstats->qual.qual = 0;
-	else if (rssi <= WLC_RSSI_VERY_LOW)
-		wstats->qual.qual = 1;
-	else if (rssi <= WLC_RSSI_LOW)
-		wstats->qual.qual = 2;
-	else if (rssi <= WLC_RSSI_GOOD)
-		wstats->qual.qual = 3;
-	else if (rssi <= WLC_RSSI_VERY_GOOD)
-		wstats->qual.qual = 4;
-	else
-		wstats->qual.qual = 5;
-
-	wstats->qual.level = 0x100 + rssi;
-	wstats->qual.noise = 0x100 + phy_noise;
-#if WIRELESS_EXT > 18
-	wstats->qual.updated |= (IW_QUAL_ALL_UPDATED | IW_QUAL_DBM);
-#else
-	wstats->qual.updated |= 7;
-#endif 
-
-	return wstats;
-}
-#endif 
 
 static int
 wl_set_mac_address(struct net_device *dev, void *addr)
@@ -2174,10 +2065,6 @@ wl_link_down(wl_info_t *wl, char *ifname)
 void
 wl_event(wl_info_t *wl, char *ifname, wlc_event_t *e)
 {
-#ifdef USE_IW
-	wl_iw_event(wl->dev, &(e->event), e->data);
-#endif 
-
 #if defined(USE_CFG80211)
 	wl_cfg80211_event(wl->dev, &(e->event), e->data);
 #endif
@@ -3267,10 +3154,6 @@ wl_linux_watchdog(void *ctx)
 	uint id;
 	wl_if_t *wlif;
 	wlc_if_stats_t wlcif_stats;
-#ifdef USE_IW
-	struct iw_statistics *wstats = NULL;
-	int phy_noise;
-#endif
 	if (wl == NULL)
 		return -1;
 
@@ -3302,28 +3185,8 @@ wl_linux_watchdog(void *ctx)
 					stats->tx_fifo_errors = 0;
 				}
 
-#ifdef USE_IW
-				wstats = &wlif->wstats_watchdog[id];
-				if (wstats) {
-#if WIRELESS_EXT > 11
-					wstats->discard.nwid = 0;
-					wstats->discard.code = WLCNTVAL(wl->pub->_cnt->rxundec);
-					wstats->discard.fragment = WLCNTVAL(wlcif_stats.rxfragerr);
-					wstats->discard.retries = WLCNTVAL(wlcif_stats.txfail);
-					wstats->discard.misc = WLCNTVAL(wl->pub->_cnt->rxrunt) +
-						WLCNTVAL(wl->pub->_cnt->rxgiant);
-					wstats->miss.beacon = 0;
-#endif 
-				}
-#endif 
-
 				wlif->stats_id = id;
 			}
-#ifdef USE_IW
-			if (!wlc_get(wl->wlc, WLC_GET_PHY_NOISE, &phy_noise))
-				wlif->phy_noise = phy_noise;
-#endif 
-
 		}
 	}
 
