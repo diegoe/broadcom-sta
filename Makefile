@@ -24,87 +24,6 @@ ifneq ($(KERNELRELEASE),)
   PATCHLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)\(.*\)/\2/')
   SUBLEVEL := $(shell echo $(KERNELRELEASE) | sed -e 's/\([0-9]*\)[.]\([0-9]*\)[.]\([0-9]*\)\(.*\)/\3/; s/\([0-9]*\)[.]\([0-9]*\)\(.*\)/0/')
 
-  # >= 2.6.32
-  LINUXVER_GOODFOR_CFG80211:=$(strip $(shell \
-    if [ "$(VERSION).$(PATCHLEVEL)" = "2.6" -a "$(SUBLEVEL)" -ge "32" ] || [ "$(VERSION)" -eq "2" -a "$(PATCHLEVEL)" -ge "7" ] || [ "$(VERSION)" -ge "3" ]; then \
-      echo TRUE; \
-    else \
-      echo FALSE; \
-    fi \
-  ))
-
-  # < 2.6.17
-    LINUXVER_WEXT_ONLY:=$(strip $(shell \
-    if [ "$(VERSION).$(PATCHLEVEL)" = "2.6" -a "$(SUBLEVEL)" -ge "17" ] || [ "$(VERSION)" -eq "2" -a "$(PATCHLEVEL)" -ge "7" ] || [ "$(VERSION)" -ge "3" ]; then \
-      echo FALSE; \
-    else \
-      echo TRUE; \
-    fi \
-  ))
-
-  ifneq ($(API),)
-    ifeq ($(API), CFG80211)
-      APICHOICE := FORCE_CFG80211
-      $(info CFG80211 API specified in command line)
-    else
-      ifeq ($(API), WEXT)
-        APICHOICE := FORCE_WEXT
-        $(info Wireless Extension API specified in command line)
-      else
-        $(error Unknown API type)
-      endif
-    endif
-  else
-    ifeq ($(LINUXVER_GOODFOR_CFG80211),TRUE)
-      APICHOICE := PREFER_CFG80211
-      $(info CFG80211 API is prefered for this kernel version)
-    else
-      ifeq ($(LINUXVER_WEXT_ONLY),TRUE)
-        APICHOICE := FORCE_WEXT
-        $(info Wireless Extension is the only possible API for this kernel version)
-      else
-        APICHOICE := PREFER_WEXT
-        $(info Wireless Extension API is prefered for this kernel version)
-      endif
-    endif
-  endif
-
-  ifeq ($(APICHOICE),FORCE_CFG80211)
-    ifneq ($(CONFIG_CFG80211),)
-      APIFINAL := CFG80211
-    else
-      $(error CFG80211 is specified but it is not enabled in kernel)
-    endif
-  endif
-
-  ifeq ($(APICHOICE),FORCE_WEXT)
-    APIFINAL := WEXT
-  endif
-
-  ifeq ($(APICHOICE),PREFER_CFG80211)
-    ifneq ($(CONFIG_CFG80211),)
-      APIFINAL := CFG80211
-    else
-      ifneq ($(CONFIG_WIRELESS_EXT),)
-        APIFINAL := WEXT
-      else
-        $(warning Neither CFG80211 nor Wireless Extension is enabled in kernel)
-      endif
-    endif
-  endif
-
-  ifeq ($(APICHOICE),PREFER_WEXT)
-    ifneq ($(CONFIG_WIRELESS_EXT),)
-      APIFINAL := WEXT
-    else
-      ifneq ($(CONFIG_CFG80211),)
-        APIFINAL := CFG80211
-      else
-        $(warning Neither CFG80211 nor Wireless Extension is enabled in kernel)
-      endif
-    endif
-  endif
-
 endif
 
 #Check GCC version so we can apply -Wno-date-time if supported.  GCC >= 4.9
@@ -125,15 +44,8 @@ GE_49 := $(shell expr `echo $(GCCVERSION)` \>= 490)
 
 ccflags-y :=
 
-ifeq ($(APIFINAL),CFG80211)
-  ccflags-y += -DUSE_CFG80211
-  $(info Using CFG80211 API)
-endif
-
-ifeq ($(APIFINAL),WEXT)
-  ccflags-y += -DUSE_IW
-  $(info Using Wireless Extension API)
-endif
+ccflags-y += -DUSE_CFG80211
+$(info Using CFG80211 API)
 
 obj-m              += wl.o
 
