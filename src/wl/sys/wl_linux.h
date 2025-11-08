@@ -88,7 +88,7 @@ struct wl_info {
 	struct tasklet_struct tasklet;	
 	struct tasklet_struct tx_tasklet; 
 
-#if 0 && (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 30))
+#if 0
 	struct napi_struct napi;
 #endif 
 
@@ -96,16 +96,10 @@ struct wl_info {
 	uint		monitor_type;	
 	bool		resched;	
 	uint32		pci_psstate[16];	
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
 #define NUM_GROUP_KEYS 4
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
 	struct lib80211_crypto_ops *tkipmodops;
-#else
-	struct ieee80211_crypto_ops *tkipmodops;	
-#endif
 	struct ieee80211_tkip_data  *tkip_ucast_data;
 	struct ieee80211_tkip_data  *tkip_bcast_data[NUM_GROUP_KEYS];
-#endif 
 
 	bool		txq_dispatched;	
 	spinlock_t	txq_lock;	
@@ -170,11 +164,7 @@ typedef struct wl_info wl_info_t;
 #define PCI_D3hot	3
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 extern irqreturn_t wl_isr(int irq, void *dev_id);
-#else
-extern irqreturn_t wl_isr(int irq, void *dev_id, struct pt_regs *ptregs);
-#endif
 
 extern int __devinit wl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent);
 extern void wl_free(wl_info_t *wl);
