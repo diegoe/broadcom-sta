@@ -1,0 +1,30 @@
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: debian:sid
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        LANG: C.UTF-8
+    steps:
+      - name: Repository checkout
+        uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          apt update  --assume-yes --quiet=2 > /dev/null
+          apt install --assume-yes --quiet=2 build-essential linux-headers-generic > /dev/null
+
+      - name: Build module
+        run: |
+          # Get what would be the latest possible `uname -r`
+          # dpkg string: linux-headers-6.17.6+deb14-arm64 (= 6.17.6-1)
+          # cut 1: 6.17.6+deb14-arm64 (= 6.17.6
+          # cut 2: 6.17.6+deb14-arm64
+          export KVER=`dpkg-query --showformat='${Depends}' --show linux-headers-amd64 | cut -d'-' -f3-4 | cut -d' ' -f1`
+          make KVER=$KVER
