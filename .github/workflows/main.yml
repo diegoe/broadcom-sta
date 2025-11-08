@@ -2,6 +2,7 @@ on: push
 
 jobs:
   debian-build:
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,3 +33,47 @@ jobs:
       - name: Test if module was built
         run: |
           test -f wl.ko
+
+  gnomeos-build:
+    if: ${{ github.ref == 'refs/heads/gnomeos' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    container:
+      image: debian:sid
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        LANG: C.UTF-8
+    steps:
+      - name: Repository checkout
+        uses: actions/checkout@v5
+
+      - name: Install build dependencies
+        run: |
+          apt update  --assume-yes --quiet=2 > /dev/null
+          apt install --assume-yes --quiet=2 elfutils make gcc > /dev/null
+          apt install --assume-yes --quiet=2 squashfs-tools > /dev/null
+
+      - name: Build module
+        run: |
+          tar --directory / --extract --gunzip --file gnomeos-kernel/linux-headers.tar.gz
+          tar --directory / --extract --gunzip --file gnomeos-kernel/linux-modules.tar.gz
+          # We know that only the linux-KVER directory is in /usr/src
+          SRC_DIR=`ls /usr/src`
+          make KVER=${SRC_DIR#linux-}
+
+      - name: Create sysext
+        run: |
+          mkdir -p target/usr/lib/extension-release.d/
+          cp extension-release.broadcom-sta target/usr/lib/extension-release.d/
+          SRC_DIR=`ls /usr/src`
+          make install MDEST_DIR=target/usr/lib/modules/${SRC_DIR#linux-}/kernel/drivers/net/wireless
+          find target/
+          mksquashfs target broadcom-sta.sysext.raw
+
+      - name: Publish sysext
+        uses: actions/upload-artifact@v4
+        with:
+          name: broadcom-sta.sysext.raw
+          path: broadcom-sta.sysext.raw
