@@ -52,7 +52,7 @@ wl-objs            += src/wl/sys/wl_linux.o
 wl-objs            += src/wl/sys/wl_cfg80211_hybrid.o
 
 ccflags-y          += -I$(src)/src/include -I$(src)/src/common/include
-ccflags-y          += -I$(src)/src/wl/sys -I$(src)/src/wl/phy -I$(src)/src/wl/ppr/include
+ccflags-y          += -I$(src)/src/wl/sys
 ccflags-y          += -I$(src)/src/shared/bcmwifi/include
 #ccflags-y          += -DBCMDBG_ASSERT -DBCMDBG_ERR
 ifeq "$(GE_49)" "1"
