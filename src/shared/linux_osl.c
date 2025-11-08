@@ -198,15 +198,11 @@ osl_detach(osl_t *osh)
 
 static struct sk_buff *osl_alloc_skb(unsigned int len)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	gfp_t flags = GFP_ATOMIC;
 	struct sk_buff *skb;
 
 	skb = __dev_alloc_skb(len, flags);
 	return skb;
-#else
-	return dev_alloc_skb(len);
-#endif 
 }
 
 struct sk_buff * BCMFASTPATH
@@ -599,10 +595,8 @@ osl_dma_alloc_consistent(osl_t *osh, uint size, uint16 align_bits, uint *alloced
 	va = kmalloc(size, GFP_ATOMIC | __GFP_ZERO);
 	if (va)
 		*pap = (ulong)__virt_to_phys(va);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
-	va = dma_alloc_coherent(&((struct pci_dev *)osh->pdev)->dev, size, (dma_addr_t*)pap, GFP_ATOMIC);
 #else
-	va = pci_alloc_consistent(osh->pdev, size, (dma_addr_t*)pap);
+	va = dma_alloc_coherent(&((struct pci_dev *)osh->pdev)->dev, size, (dma_addr_t*)pap, GFP_ATOMIC);
 #endif
 	return va;
 }
@@ -614,10 +608,8 @@ osl_dma_free_consistent(osl_t *osh, void *va, uint size, ulong pa)
 
 #ifdef __ARM_ARCH_7A__
 	kfree(va);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
-	dma_free_coherent(&((struct pci_dev *)osh->pdev)->dev, size, va, (dma_addr_t)pa);
 #else
-	pci_free_consistent(osh->pdev, size, va, (dma_addr_t)pa);
+	dma_free_coherent(&((struct pci_dev *)osh->pdev)->dev, size, va, (dma_addr_t)pa);
 #endif
 }
 
@@ -627,11 +619,7 @@ osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_
 	int dir;
 
 	ASSERT((osh && (osh->magic == OS_HANDLE_MAGIC)));
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 	dir = (direction == DMA_TX)? DMA_TO_DEVICE: DMA_FROM_DEVICE;
-#else
-	dir = (direction == DMA_TX)? PCI_DMA_TODEVICE: PCI_DMA_FROMDEVICE;
-#endif
 
 #if defined(__ARM_ARCH_7A__) && defined(BCMDMASGLISTOSL)
 	if (dmah != NULL) {
@@ -649,11 +637,7 @@ osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_
 				ASSERT(totsegs + nsegs <= MAX_DMA_SEGS);
 				sg->page_link = 0;
 				sg_set_buf(sg, PKTDATA(osh, skb), PKTLEN(osh, skb));
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 				dma_map_single(&((struct pci_dev *)osh->pdev)->dev, PKTDATA(osh, skb), PKTLEN(osh, skb), dir);
-#else
-				pci_map_single(osh->pdev, PKTDATA(osh, skb), PKTLEN(osh, skb), dir);
-#endif
 			}
 			totsegs += nsegs;
 			totlen += PKTLEN(osh, skb);
@@ -668,11 +652,7 @@ osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p, hnddma_seg_
 	}
 #endif 
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 	return (dma_map_single(&((struct pci_dev *)osh->pdev)->dev, va, size, dir));
-#else
-	return (pci_map_single(osh->pdev, va, size, dir));
-#endif
 }
 
 void BCMFASTPATH
@@ -681,13 +661,8 @@ osl_dma_unmap(osl_t *osh, uint pa, uint size, int direction)
 	int dir;
 
 	ASSERT((osh && (osh->magic == OS_HANDLE_MAGIC)));
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
 	dir = (direction == DMA_TX)? DMA_TO_DEVICE: DMA_FROM_DEVICE;
 	dma_unmap_single(&((struct pci_dev *)osh->pdev)->dev, (uint32)pa, size, dir);
-#else
-	dir = (direction == DMA_TX)? PCI_DMA_TODEVICE: PCI_DMA_FROMDEVICE;
-	pci_unmap_single(osh->pdev, (uint32)pa, size, dir);
-#endif
 }
 
 #if defined(BCMDBG_ASSERT)
@@ -953,11 +928,7 @@ osl_getcycles(void)
 	uint cycles;
 
 #if defined(__i386__)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 3, 0)
 	cycles = (u32)rdtsc();
-#else
-	rdtscl(cycles);
-#endif
 #else
 	cycles = 0;
 #endif 
@@ -967,11 +938,7 @@ osl_getcycles(void)
 void *
 osl_reg_map(uint32 pa, uint size)
 {
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
-		return (ioremap((unsigned long)pa, (unsigned long)size));
-	#else
-		return (ioremap_nocache((unsigned long)pa, (unsigned long)size));
-	#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
+	return (ioremap((unsigned long)pa, (unsigned long)size));
 }
 
 void
@@ -1107,15 +1074,7 @@ osl_os_get_image_block(char *buf, int len, void *image)
 		return 0;
 
 	pos = fp->f_pos;
-	rdlen = kernel_read(fp,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
-			pos,
-#endif
-			buf, len
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
-			,&pos
-#endif
-	);
+	rdlen = kernel_read(fp, buf, len, &pos);
 	if (rdlen > 0)
 		fp->f_pos += rdlen;
 
