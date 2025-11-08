@@ -1,7 +1,7 @@
 on: push
 
 jobs:
-  build:
+  debian-build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,7 +18,7 @@ jobs:
       - name: Install build dependencies
         run: |
           apt update  --assume-yes --quiet=2 > /dev/null
-          apt install --assume-yes --quiet=2 build-essential linux-headers-generic > /dev/null
+          apt install --assume-yes --quiet=2 make gcc linux-headers-generic > /dev/null
 
       - name: Build module
         run: |
