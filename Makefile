@@ -59,24 +59,7 @@ ifeq "$(GE_49)" "1"
 ccflags-y          += -Wno-date-time
 endif
 
-# Look for kernel architecture.
-# Check for a config symbol that should always be defined, so we don't
-# fail on 'make clean' which doesn't include .config
-ifeq ($(CONFIG_NET),y)
-    ifeq ($(CONFIG_X86_32),y)
-        SHIPPED=wlc_hybrid.o_i386
-        $(info Kernel architecture is X86_32)
-    else
-        ifeq ($(CONFIG_X86_64),y)
-            SHIPPED=wlc_hybrid.o_amd64
-            $(info Kernel architecture is X86_64)
-        else # Error!
-            $(error Unsupported kernel architecture)
-        endif
-    endif
-endif
-
-ldflags-y          := $(src)/lib/$(SHIPPED)
+ldflags-y          := $(src)/lib/wlc_hybrid.o_amd64
 
 KVER               ?= $(shell uname -r)
 KBASE              ?= /lib/modules/$(KVER)
