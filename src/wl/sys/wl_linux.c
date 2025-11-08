@@ -26,9 +26,7 @@
 #include <typedefs.h>
 #include <linuxver.h>
 #include <osl.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
 #include <linux/module.h>
-#endif
 
 #include <linux/types.h>
 #include <linux/errno.h>
@@ -47,20 +45,12 @@
 #include <linux/pci_ids.h>
 #define WLC_MAXBSSCFG		1	
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
 #include <asm/switch_to.h>
-#else
-#include <asm/system.h>
-#endif
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/pgtable.h>
 #include <asm/uaccess.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
 #include <linux/unaligned.h>
-#else
-#include <asm/unaligned.h>
-#endif
 
 #include <proto/802.1d.h>
 
@@ -72,10 +62,6 @@
 #include <wlioctl.h>
 #include <wlc_key.h>
 #include <siutils.h>
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 4, 5)
-#error "No support for Kernel Rev <= 2.4.5, As the older kernel revs doesn't support Tasklets"
-#endif
 
 #include <wlc_pub.h>
 #include <wl_dbg.h>
@@ -92,13 +78,7 @@
 
 #include <wlc_wowl.h>
 
-static void wl_timer(
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-		struct timer_list *tl
-#else
-		ulong data
-#endif
-		);
+static void wl_timer(struct timer_list *tl);
 static void _wl_timer(wl_timer_t *t);
 static struct net_device *wl_alloc_linux_if(wl_if_t *wlif);
 
@@ -427,12 +407,8 @@ typedef struct wl_radiotap_vht wl_radiotap_vht_t;
 #define SRCBASE "."
 #endif
 
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 19)
-static struct ethtool_ops wl_ethtool_ops =
-#else
+#if WIRELESS_EXT >= 19
 static const struct ethtool_ops wl_ethtool_ops =
-#endif 
 {
 	.get_drvinfo = wl_get_driver_info,
 };
@@ -447,11 +423,7 @@ static const struct net_device_ops wl_netdev_ops =
 	.ndo_start_xmit = wl_start,
 	.ndo_get_stats = wl_get_stats,
 	.ndo_set_mac_address = wl_set_mac_address,
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 	.ndo_set_rx_mode = wl_set_multicast_list,
-#else
-	.ndo_set_multicast_list = wl_set_multicast_list,
-#endif
 	.ndo_do_ioctl = wl_ioctl
 };
 
@@ -478,7 +450,7 @@ wl_if_setup(struct net_device *dev)
 	dev->do_ioctl = wl_ioctl;
 #endif 
 
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#if WIRELESS_EXT >= 19
 	dev->ethtool_ops = &wl_ethtool_ops;
 #endif
 }
@@ -579,17 +551,10 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 	}
 	wl->bcm_bustype = bustype;
 
-	#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	if ((wl->regsva = ioremap(dev->base_addr, PCI_BAR0_WINSZ)) == NULL) {
 		WL_ERROR(("wl%d: ioremap() failed\n", unit));
 		goto fail;
 	}
-	#else
-	if ((wl->regsva = ioremap_nocache(dev->base_addr, PCI_BAR0_WINSZ)) == NULL) {
-		WL_ERROR(("wl%d: ioremap() failed\n", unit));
-		goto fail;
-	}
-	#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
 
 	wl->bar1_addr = bar1_addr;
 	wl->bar1_size = bar1_size;
@@ -638,11 +603,7 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 			WL_ERROR(("wl%d: Error setting MAC ADDRESS\n", unit));
 	}
 #endif 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	bcopy(&wl->pub->cur_etheraddr, dev->dev_addr, ETHER_ADDR_LEN);
-#else
 	eth_hw_addr_set(dev, wl->pub->cur_etheraddr.octet);
-#endif
 
 	online_cpus = 1;
 
@@ -775,13 +736,8 @@ wl_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		pci_write_config_dword(pdev, 0x40, val & 0xffff00ff);
 
 	bar1_size = pci_resource_len(pdev, 2);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	bar1_addr = (uchar *)ioremap(pci_resource_start(pdev, 2),
 				     bar1_size);
-#else
-	bar1_addr = (uchar *)ioremap_nocache(pci_resource_start(pdev, 2),
-					     bar1_size);
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
 
 	wl = wl_attach(pdev->vendor, pdev->device, pci_resource_start(pdev, 0), PCI_BUS, pdev,
 		       pdev->irq, bar1_addr, bar1_size);
@@ -1048,9 +1004,6 @@ wl_free(wl_info_t *wl)
 		wl->bar1_addr = NULL;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 14)
-#endif 
-
 	wl_txq_free(wl);
 
 	MFREE(osh, wl, sizeof(wl_info_t));
@@ -1281,13 +1234,8 @@ wl_free_if(wl_info_t *wl, wl_if_t *wlif)
 	}
 
 	if (wlif->dev) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24))
-		MFREE(wl->osh, wlif->dev->priv, sizeof(priv_link_t));
-		MFREE(wl->osh, wlif->dev, sizeof(struct net_device));
-#else
 		free_netdev(wlif->dev);
 		wlif->dev = NULL;
-#endif 
 	}
 
 	MFREE(wl->osh, wlif, sizeof(wl_if_t));
@@ -1301,35 +1249,7 @@ wl_alloc_linux_if(wl_if_t *wlif)
 	priv_link_t *priv_link;
 
 	WL_TRACE(("%s\n", __FUNCTION__));
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24))
-	dev = MALLOC(wl->osh, sizeof(struct net_device));
-	if (!dev) {
-		WL_ERROR(("wl%d: %s: malloc of net_device failed\n",
-			(wl->pub)?wl->pub->unit:wlif->subunit, __FUNCTION__));
-		return NULL;
-	}
-	bzero(dev, sizeof(struct net_device));
-	ether_setup(dev);
-
-	strncpy(dev->name, intf_name, IFNAMSIZ-1);
-	dev->name[IFNAMSIZ-1] = '\0';
-
-	priv_link = MALLOC(wl->osh, sizeof(priv_link_t));
-	if (!priv_link) {
-		WL_ERROR(("wl%d: %s: malloc of priv_link failed\n",
-			(wl->pub)?wl->pub->unit:wlif->subunit, __FUNCTION__));
-		MFREE(wl->osh, dev, sizeof(struct net_device));
-		return NULL;
-	}
-	dev->priv = priv_link;
-#else
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 17, 0))
-	dev = alloc_netdev(sizeof(priv_link_t), intf_name, ether_setup);
-#else
 	dev = alloc_netdev(sizeof(priv_link_t), intf_name, NET_NAME_UNKNOWN, ether_setup);
-#endif
-
 	if (!dev) {
 		WL_ERROR(("wl%d: %s: alloc_netdev failed\n",
 			(wl->pub)?wl->pub->unit:wlif->subunit, __FUNCTION__));
@@ -1341,7 +1261,6 @@ wl_alloc_linux_if(wl_if_t *wlif)
 			(wl->pub)?wl->pub->unit:wlif->subunit, __FUNCTION__));
 		return NULL;
 	}
-#endif 
 
 	priv_link->wlif = wlif;
 	wlif->dev = dev;
@@ -1485,9 +1404,6 @@ wl_down(wl_info_t *wl)
 		int i = 0;
 		for (i = 0; (atomic_read(&wl->callbacks) > callbacks) && i < 10000; i++) {
 			schedule();
-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
-			flush_scheduled_work();
-#endif
 		}
 	}
 	else
@@ -1525,7 +1441,7 @@ wl_get_driver_info(struct net_device *dev, struct ethtool_drvinfo *info)
 {
 	wl_info_t *wl = WL_INFO(dev);
 
-#if WIRELESS_EXT >= 19 || LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 29)
+#if WIRELESS_EXT >= 19
 	if (!wl || !wl->pub || !wl->wlc || !wl->dev)
 		return;
 #endif
@@ -1765,11 +1681,7 @@ wl_set_mac_address(struct net_device *dev, void *addr)
 			wl->pub->unit));
 		return OSL_ERROR(err);
 	} else {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-		bcopy(sa->sa_data, dev->dev_addr, ETHER_ADDR_LEN);
-#else
         eth_hw_addr_set(dev, sa->sa_data);
-#endif
 		return 0;
 	}
 }
@@ -1793,11 +1705,7 @@ wl_set_multicast_list(struct net_device *dev)
 static void
 _wl_set_multicast_list(struct net_device *dev)
 {
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 34)
-	struct dev_mc_list *mclist;
-#else
 	struct netdev_hw_addr *ha;
-#endif
 	wl_info_t *wl;
 	int i, buflen;
 	struct maclist *maclist;
@@ -1819,16 +1727,6 @@ _wl_set_multicast_list(struct net_device *dev)
 		}
 
 		i = 0;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 34)
-		for (mclist = dev->mc_list; mclist && (i < dev->mc_count); mclist = mclist->next) {
-			if (i >= MAXMULTILIST) {
-				allmulti = TRUE;
-				i = 0;
-				break;
-			}
-			bcopy(mclist->dmi_addr, &maclist->ea[i++], ETHER_ADDR_LEN);
-		}
-#else
 		netdev_for_each_mc_addr(ha, dev) {
 			if (i >= MAXMULTILIST) {
 				allmulti = TRUE;
@@ -1837,7 +1735,6 @@ _wl_set_multicast_list(struct net_device *dev)
 			}
 			bcopy(ha->addr, &maclist->ea[i++], ETHER_ADDR_LEN);
 		}
-#endif 
 		maclist->count = i;
 
 		WL_LOCK(wl);
@@ -1855,13 +1752,8 @@ _wl_set_multicast_list(struct net_device *dev)
 
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
 irqreturn_t BCMFASTPATH
 wl_isr(int irq, void *dev_id)
-#else
-irqreturn_t BCMFASTPATH
-wl_isr(int irq, void *dev_id, struct pt_regs *ptregs)
-#endif 
 {
 	wl_info_t *wl;
 	bool ours, wantdpc;
@@ -2259,20 +2151,9 @@ wl_timer_task(wl_task_t *task)
 
 static void
 wl_timer(
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 		struct timer_list *tl
-#else
-		ulong data
-#endif
 ) {
-	wl_timer_t *t =
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0)
-		timer_container_of(t, tl, timer);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
-		from_timer(t, tl, timer);
-#else
-		(wl_timer_t *)data;
-#endif
+	wl_timer_t *t = timer_container_of(t, tl, timer);
 
 	if (!WL_ALL_PASSIVE_ENAB(t->wl))
 		_wl_timer(t);
@@ -2324,13 +2205,7 @@ wl_init_timer(wl_info_t *wl, void (*fn)(void *arg), void *arg, const char *tname
 
 	bzero(t, sizeof(wl_timer_t));
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 	timer_setup(&t->timer, wl_timer, 0);
-#else
-	init_timer(&t->timer);
-	t->timer.data = (ulong) t;
-	t->timer.function = wl_timer;
-#endif
 	t->wl = wl;
 	t->fn = fn;
 	t->arg = arg;
@@ -2891,14 +2766,7 @@ wl_monitor(wl_info_t *wl, wl_rxsts_t *rxsts, void *p)
 	if (skb == NULL) return;
 
 	skb->dev = wl->monitor_dev;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 11, 0)
-	skb->dev->last_rx = jiffies;
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 22)
 	skb_reset_mac_header(skb);
-#else
-	skb->mac.raw = skb->data;
-#endif
 	skb->ip_summed = CHECKSUM_NONE;
 	skb->pkt_type = PACKET_OTHERHOST;
 	skb->protocol = htons(ETH_P_80211_RAW);
@@ -2941,11 +2809,7 @@ _wl_add_monitor_if(wl_task_t *task)
 	else
 		dev->type = ARPHRD_IEEE80211_RADIOTAP;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	bcopy(wl->dev->dev_addr, dev->dev_addr, ETHER_ADDR_LEN);
-#else
 	eth_hw_addr_set(dev, wl->dev->dev_addr);
-#endif
 
 #if defined(WL_USE_NETDEV_OPS)
 	dev->netdev_ops = &wl_netdev_monitor_ops;
@@ -3026,14 +2890,6 @@ wl_set_monitor(wl_info_t *wl, int val)
 		return;
 	}
 }
-
-#if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 15)
-const char *
-print_tainted()
-{
-	return "";
-}
-#endif 
 
 struct net_device *
 wl_netdev_get(wl_info_t *wl)
@@ -3193,35 +3049,17 @@ wl_linux_watchdog(void *ctx)
 	return 0;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-static int
-wl_proc_read(char *buffer, char **start, off_t offset, int length, int *eof, void *data)
-{
-	wl_info_t * wl = (wl_info_t *)data;
-#else
 static ssize_t
 wl_proc_read(struct file *filp, char __user *buffer, size_t length, loff_t *offp)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	wl_info_t * wl = PDE_DATA(file_inode(filp));
-#else
 	wl_info_t * wl = pde_data(file_inode(filp));
-#endif
-#endif
 	int bcmerror, len;
 	int to_user = 0;
 	char tmp[8];
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-	if (offset > 0) {
-		*eof = 1;
-		return 0;
-	}
-#else
 	if (*offp > 0) { 
 		return 0; 
 	}
-#endif
 
 	WL_LOCK(wl);
 	bcmerror = wlc_ioctl(wl->wlc, WLC_GET_MONITOR, &to_user, sizeof(int), NULL);
@@ -3247,28 +3085,15 @@ wl_proc_read(struct file *filp, char __user *buffer, size_t length, loff_t *offp
 		return -EFAULT;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
 	*offp += len;
-#endif
 
 	return len;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-static int
-wl_proc_write(struct file *filp, const char *buff, unsigned long length, void *data)
-{
-	wl_info_t * wl = (wl_info_t *)data;
-#else
 static ssize_t
 wl_proc_write(struct file *filp, const char __user *buff, size_t length, loff_t *offp)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0)
-	wl_info_t * wl = PDE_DATA(file_inode(filp));
-#else
 	wl_info_t * wl = pde_data(file_inode(filp));
-#endif
-#endif
 	int from_user = 0;
 	int bcmerror;
 
@@ -3279,11 +3104,7 @@ wl_proc_write(struct file *filp, const char __user *buff, size_t length, loff_t 
 	}
 	if (copy_from_user(&from_user, buff, 1)) {
 		WL_ERROR(("%s: copy from user failed\n", __FUNCTION__));
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-		return -EIO;
-#else
 		return -EFAULT;
-#endif
 	}
 
 	if (from_user >= 0x30)
@@ -3300,41 +3121,21 @@ wl_proc_write(struct file *filp, const char __user *buff, size_t length, loff_t 
 	return length;
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 static const struct proc_ops wl_fops = {
 	.proc_read	= wl_proc_read,
 	.proc_write	= wl_proc_write,
 };
-#else
-static const struct file_operations wl_fops = {
-	.owner	= THIS_MODULE,
-	.read	= wl_proc_read,
-	.write	= wl_proc_write,
-};
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) */
-#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 10, 0) */
 
 static int
 wl_reg_proc_entry(wl_info_t *wl)
 {
 	char tmp[32];
 	sprintf(tmp, "%s%d", HYBRID_PROC, wl->pub->unit);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-	if ((wl->proc_entry = create_proc_entry(tmp, 0644, NULL)) == NULL) {
-		WL_ERROR(("%s: create_proc_entry %s failed\n", __FUNCTION__, tmp));
-#else
 	if ((wl->proc_entry = proc_create_data(tmp, 0644, NULL, &wl_fops, wl)) == NULL) {
 		WL_ERROR(("%s: proc_create_data %s failed\n", __FUNCTION__, tmp));
-#endif
 		ASSERT(0);
 		return -1;
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
-	wl->proc_entry->read_proc = wl_proc_read;
-	wl->proc_entry->write_proc = wl_proc_write;
-	wl->proc_entry->data = wl;
-#endif
 	return 0;
 }
 uint32 wl_pcie_bar1(struct wl_info *wl, uchar** addr)
