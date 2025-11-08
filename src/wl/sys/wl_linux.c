@@ -404,12 +404,10 @@ typedef struct wl_radiotap_vht wl_radiotap_vht_t;
 #define SRCBASE "."
 #endif
 
-#if WIRELESS_EXT >= 19
 static const struct ethtool_ops wl_ethtool_ops =
 {
 	.get_drvinfo = wl_get_driver_info,
 };
-#endif 
 
 #if defined(WL_USE_NETDEV_OPS)
 
@@ -447,9 +445,7 @@ wl_if_setup(struct net_device *dev)
 	dev->do_ioctl = wl_ioctl;
 #endif 
 
-#if WIRELESS_EXT >= 19
 	dev->ethtool_ops = &wl_ethtool_ops;
-#endif
 }
 
 static wl_info_t *
@@ -1420,10 +1416,8 @@ wl_get_driver_info(struct net_device *dev, struct ethtool_drvinfo *info)
 {
 	wl_info_t *wl = WL_INFO(dev);
 
-#if WIRELESS_EXT >= 19
 	if (!wl || !wl->pub || !wl->wlc || !wl->dev)
 		return;
-#endif
 	bzero(info, sizeof(struct ethtool_drvinfo));
 	snprintf(info->driver, sizeof(info->driver), "wl%d", wl->pub->unit);
 	strncpy(info->version, EPI_VERSION_STR, sizeof(info->version));
